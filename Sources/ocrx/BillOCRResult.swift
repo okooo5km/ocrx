@@ -39,9 +39,10 @@ struct BillOCRResult: Codable {
     }
     
     var csv: String {
-        var result = "text,left,top,width,height\n\n"
+        var result = "text,left,top,width,height\n"
         for word in words {
-            result.append("\(word.words),\(word.location.left),\(word.location.top),\(word.location.width),\(word.location.height)\n\n")
+            let text = word.words.replacingOccurrences(of: ",", with: "，")
+            result.append("\(text),\(word.location.left),\(word.location.top),\(word.location.width),\(word.location.height)\n")
         }
         return result
     }

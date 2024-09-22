@@ -5,8 +5,8 @@ import AppKit
 
 struct OCRX: ParsableCommand {
     static let configuration = CommandConfiguration(
-        commandName: "ocrx",
-        abstract: "A command-line tool for OCR processing"
+        abstract: "OCR tool for extracting text from images",
+        version: "0.1.1" // 添加版本信息
     )
 
     @Argument(help: "Path to the image file to be processed")
@@ -19,6 +19,7 @@ struct OCRX: ParsableCommand {
     var format: String = "baidu" 
 
     mutating func run() throws {
+
         let imageURL: URL
         if imagePath.hasPrefix("/") {
             // Absolute path
