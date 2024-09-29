@@ -18,6 +18,9 @@ struct OCRX: ParsableCommand {
     @Option(name: [.short, .long], help: "Specify the output format (baidu, csv, or native)")
     var format: String = "baidu" 
 
+    @Flag(name: [.short, .long], help: "Output compact BillOCRResult")
+    var compact: Bool = false
+
     mutating func run() throws {
 
         let imageURL: URL
@@ -37,11 +40,11 @@ struct OCRX: ParsableCommand {
         let formattedResult: String
         switch format.lowercased() {
         case "baidu":
-            formattedResult = result.json
+            formattedResult = compact ? result.compact.json : result.json
         case "csv":
-            formattedResult = result.csv
+            formattedResult = compact ? result.compact.csv : result.csv
         case "native":
-            formattedResult = result.raw
+            formattedResult = compact ? result.compact.raw : result.raw
         default:
             throw ValidationError("Invalid format. Please use 'baidu', 'csv', or 'native'.")
         }

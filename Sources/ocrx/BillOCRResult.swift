@@ -15,6 +15,45 @@ struct BillOCRResult: Codable {
             var height: Int
         }
     }
+
+    var compact: BillOCRResult {
+        var mergedWords: [Words] = []
+        var currentLine: [Words] = []
+        
+        for word in words {
+            if let lastWord = currentLine.last {
+                if abs(lastWord.location.top - word.location.top) < 10 { // 判断 top 是否比较接近
+                    currentLine.append(word)
+                } else {
+                    if !currentLine.isEmpty {
+                        let mergedWord = mergeWords(currentLine)
+                        mergedWords.append(mergedWord)
+                    }
+                    currentLine = [word]
+                }
+            } else {
+                currentLine.append(word)
+            }
+        }
+        
+        if !currentLine.isEmpty {
+            let mergedWord = mergeWords(currentLine)
+            mergedWords.append(mergedWord)
+        }
+        
+        return BillOCRResult(words: mergedWords, count: mergedWords.count)
+    }
+    
+    private func mergeWords(_ words: [Words]) -> Words {
+        let mergedText = words.map { $0.words }.joined(separator: " ")
+        let top = words.map { $0.location.top }.min() ?? 0
+        let left = words.map { $0.location.left }.min() ?? 0
+        let width = (words.map { $0.location.left + $0.location.width }.max() ?? 0) - left
+        let height = (words.map { $0.location.top + $0.location.height }.max() ?? 0) - top
+        
+        let mergedLocation = Words.Location(top: top, left: left, width: width, height: height)
+        return Words(words: mergedText, location: mergedLocation)
+    }
     
     var json: String {
         let encoder = JSONEncoder()
