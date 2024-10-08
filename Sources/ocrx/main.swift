@@ -5,56 +5,86 @@ import AppKit
 
 struct OCRX: ParsableCommand {
     static let configuration = CommandConfiguration(
-        abstract: "OCR tool for extracting text from images",
-        version: "0.1.1" // 添加版本信息
+        abstract: "OCR工具，用于从图像中提取文本",
+        version: "0.1.2"
     )
 
-    @Argument(help: "Path to the image file to be processed")
-    var imagePath: String
+    @Argument(help: "要处理的图像文件路径")
+    var imagePath: String?
 
-    @Option(name: [.short, .long], help: "Specify the file path to save the OCR result")
+    @Option(name: [.short, .long], help: "指定保存OCR结果的文件路径")
     var output: String?
 
-    @Option(name: [.short, .long], help: "Specify the output format (baidu, csv, or native)")
+    @Option(name: [.short, .long], help: "指定输出格式（baidu、csv或native）")
     var format: String = "baidu" 
 
-    @Flag(name: [.short, .long], help: "Output compact BillOCRResult")
+    @Flag(name: [.short, .long], help: "输出紧凑的BillOCRResult")
     var compact: Bool = false
 
+    @Option(name: [.short, .long], help: "指定要批处理的图像目录")
+    var batch: String?
+
     mutating func run() throws {
-
-        let imageURL: URL
-        if imagePath.hasPrefix("/") {
-            // Absolute path
-            guard let url = URL(string: imagePath) else {
-                throw ValidationError("Invalid image path")
-            }
-            imageURL = url
+        if let batchPath = batch {
+            try processBatch(batchPath: batchPath)
+        } else if let imagePath = imagePath {
+            try processSingleImage(imagePath: imagePath)
         } else {
-            // Relative path
-            imageURL = URL(fileURLWithPath: imagePath)
+            throw ValidationError("请指定图像路径或批处理目录")
+        }
+    }
+
+    func processBatch(batchPath: String) throws {
+        let fileManager = FileManager.default
+        let enumerator = fileManager.enumerator(atPath: batchPath)
+        var batchResults: [String: String] = [:]
+
+        while let filePath = enumerator?.nextObject() as? String {
+            let fullPath = (batchPath as NSString).appendingPathComponent(filePath)
+            let ext = (filePath as NSString).pathExtension.lowercased()
+            if ["jpg", "jpeg", "png"].contains(ext) {
+                let result = try processImage(url: URL(fileURLWithPath: fullPath))
+                let formattedResult = formatResult(result)
+                batchResults[filePath] = formattedResult
+            }
         }
 
+        let jsonData = try JSONSerialization.data(withJSONObject: batchResults, options: .prettyPrinted)
+        let jsonString = String(data: jsonData, encoding: .utf8)!
+
+        if let outputPath = output {
+            try jsonString.write(toFile: outputPath, atomically: true, encoding: .utf8)
+            print("批处理结果已保存到 \(outputPath)")
+        } else {
+            copyToClipboard(jsonString)
+            print("批处理结果已复制到剪贴板")
+        }
+    }
+
+    func processSingleImage(imagePath: String) throws {
+        let imageURL = URL(fileURLWithPath: imagePath)
         let result = try processImage(url: imageURL)
-
-        let formattedResult: String
-        switch format.lowercased() {
-        case "baidu":
-            formattedResult = compact ? result.compact.json : result.json
-        case "csv":
-            formattedResult = compact ? result.compact.csv : result.csv
-        case "native":
-            formattedResult = compact ? result.compact.raw : result.raw
-        default:
-            throw ValidationError("Invalid format. Please use 'baidu', 'csv', or 'native'.")
-        }
+        let formattedResult = formatResult(result)
 
         if let outputPath = output {
             try formattedResult.write(toFile: outputPath, atomically: true, encoding: .utf8)
-            print("Result saved to \(outputPath)")
+            print("结果已保存到 \(outputPath)")
         } else {
             copyToClipboard(formattedResult)
-            print("Result copied to clipboard")
+            print("结果已复制到剪贴板")
+        }
+    }
+
+    func formatResult(_ result: BillOCRResult) -> String {
+        switch format.lowercased() {
+        case "baidu":
+            return compact ? result.compact.json : result.json
+        case "csv":
+            return compact ? result.compact.csv : result.csv
+        case "native":
+            return compact ? result.compact.raw : result.raw
+        default:
+            return "错误：无效的格式。请使用 'baidu'、'csv' 或 'native'。"
         }
     }
 

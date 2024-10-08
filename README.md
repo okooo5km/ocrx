@@ -1,14 +1,16 @@
 # OCRX
 
-OCRX 是一个基于 Swift 的命令行工具,用于对图像进行光学字符识别(OCR)处理。它支持多种输出格式,并可以将结果保存到文件或复制到剪贴板。
+OCRX 是一个基于 Swift 的命令行工具，用于对图像进行光学字符识别(OCR)处理。它支持多种输出格式，并可以将结果保存到文件或复制到剪贴板。
 
 ## 功能特点
 
-- 支持处理多种图像格式
-- 可识别中文(简体和繁体)和英文
-- 支持多种输出格式:百度格式(JSON)、CSV 和原生格式
+- 支持处理多种图像格式（jpg、jpeg、png）
+- 可识别中文（简体和繁体）和英文
+- 支持多种输出格式：百度格式（JSON）、CSV 和原生格式
 - 可将结果保存到文件或复制到剪贴板
-- 基于 Apple 的 Vision 框架,提供高精度的 OCR 识别
+- 支持批量处理图像目录
+- 支持紧凑输出模式
+- 基于 Apple 的 Vision 框架，提供高精度的 OCR 识别
 
 ## 系统要求
 
@@ -17,20 +19,20 @@ OCRX 是一个基于 Swift 的命令行工具,用于对图像进行光学字符�
 
 ## 安装
 
-1. 克隆此仓库:
+1. 克隆此仓库：
 
    ```shell
    git clone https://github.com/yourusername/ocrx.git
    cd ocrx
    ```
 
-2. 构建项目:
+2. 构建项目：
 
    ```shell
    swift build -c release
    ```
 
-3. (可选) 将可执行文件复制到系统路径:
+3. （可选）将可执行文件复制到系统路径：
 
    ```shell
    sudo cp .build/release/ocrx /usr/local/bin/ocrx
@@ -38,71 +40,103 @@ OCRX 是一个基于 Swift 的命令行工具,用于对图像进行光学字符�
 
 ## 使用方法
 
-基本用法:
+基本用法：
 
 ```shell
-ocrx <image-path> [--output <output-path>] [--format <format>]
+ocrx <image-path> [--output <output>] [--format <format>]
 ```
 
-参数:
+参数说明：
 
-- `<image-path>`: 要处理的图像文件路径 (必需)
-- `--output` 或 `-o`: 指定保存 OCR 结果的文件路径 (可选)
-- `--format` 或 `-f`: 指定输出格式,选项为 baidu (默认)、csv 或 native
+- `<image-path>`: 要处理的图像文件路径
+- `--output <output>`: 指定输出文件路径（可选）
+- `--format <format>`: 指定输出格式，可选值为 baidu、csv 或 native（默认为 baidu）
 
-示例:
+### 示例
 
-1. 使用默认设置处理图像:
-
-   ```shell
-   ocrx /path/to/your/image.jpg
-   ```
-
-2. 指定输出文件和格式:
+1. 处理单个图像并将结果输出到控制台：
 
    ```shell
-   ocrx /path/to/your/image.jpg --output result.json --format baidu
+   ocrx /path/to/image.jpg
    ```
 
-3. 使用 CSV 格式并将结果复制到剪贴板:
+2. 处理图像并将结果保存到文件：
 
    ```shell
-   ocrx /path/to/your/image.jpg --format csv
+   ocrx /path/to/image.jpg --output result.json
    ```
 
-## 开发注意事项
+3. 使用 CSV 格式输出结果：
 
-1. Swift 版本:
-   - 本项目使用 Swift 6.0。确保您的开发环境已安装正确版本的 Swift。
+   ```shell
+   ocrx /path/to/image.jpg --format csv
+   ```
 
-2. 依赖管理:
-   - 项目使用 Swift Package Manager 管理依赖。主要依赖包括:
-     - ArgumentParser: 用于解析命令行参数
-     - Vision: 用于 OCR 处理(系统框架)
+4. 批量处理目录中的所有图像：
 
-3. 文件结构:
-   - `Sources/ocrx/main.swift`: 主程序入口和命令行接口
-   - `Sources/ocrx/BillOCRResult.swift`: OCR 结果数据模型
+   ```shell
+   ocrx /path/to/image/directory --output results.json
+   ```
 
-4. 错误处理:
-   - 确保适当处理文件读取、图像处理和 OCR 识别过程中可能出现的错误。
+## 输出格式
 
-5. 平台兼容性:
-   - 目前仅支持 macOS。如需支持其他平台,需要修改相关平台特定代码。
+1. 百度格式（默认）：
 
-6. 测试:
-   - 建议为主要功能编写单元测试,特别是数据处理和格式转换部分。
+   ```json
+   {
+     "words_result": [
+       {
+         "words": "识别的文本",
+         "location": {
+           "top": 100,
+           "left": 50,
+           "width": 200,
+           "height": 30
+         }
+       }
+     ],
+     "words_result_num": 1
+   }
+   ```
 
-7. 性能优化:
-   - 对于大型图像,可能需要考虑内存使用和处理时间的优化。
+2. CSV 格式：
 
-8. 国际化:
-   - 如果计划支持多语言,考虑使用本地化字符串。
+   ```csv
+   文本,左,上,宽,高
+   "识别的文本",50,100,200,30
+   ```
+
+3. 原生格式：
+
+   ```native
+   识别的文本 (50, 100, 200, 30)
+   ```
+
+## 注意事项
+
+- 确保您有足够的权限访问和处理目标图像文件。
+- 对于大量图像的批处理，请考虑使用更强大的硬件以提高处理速度。
+- 识别结果的准确性可能受图像质量、文字清晰度等因素影响。
 
 ## 贡献
 
-欢迎提交问题报告和拉取请求。对于重大变更,请先开 issue 讨论您想要改变的内容。
+欢迎提交问题报告和改进建议。如果您想贡献代码，请遵循以下步骤：
+
+1. Fork 本仓库
+2. 创建您的特性分支 (`git checkout -b feature/AmazingFeature`)
+3. 提交您的更改 (`git commit -m 'Add some AmazingFeature'`)
+4. 推送到分支 (`git push origin feature/AmazingFeature`)
+5. 开启一个 Pull Request
 
 ## 许可证
 
-[MIT](https://choosealicense.com/licenses/mit/)
+本项目采用 MIT 许可证。详情请参见 [LICENSE](LICENSE) 文件。
+
+## 联系方式
+
+如有任何问题或建议，请通过以下方式联系我们：
+
+- 电子邮件：<your.email@example.com>
+- GitHub Issues：<https://github.com/yourusername/ocrx/issues>
+
+感谢您使用 OCRX！
